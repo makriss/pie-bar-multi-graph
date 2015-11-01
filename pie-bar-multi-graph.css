@@ -1,0 +1,22 @@
+#graph-chart text {
+/*  fill: white;*/
+  font: 10px sans-serif;
+/*  text-anchor: middle;*/
+}
+#graph-chart .x.axis path, #graph-chart .tick line {  display: none; }
+/*.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}*/
+#graph-chart .axis {  font: 10px sans-serif; }
+#pie-chart-svg path:hover {opacity: 0.8;}
+#graph-chart-svg rect:hover {  fill:blue; }
+#legend-table{
+	display: inline-block;
+	margin-bottom: 6%;
+}
+#legend-table table{font: 12px sans-serif; border-collapse: collapse;}
+table.legend tr:first-child{border-top: 1px solid grey;}
+table.legend tr{border-bottom: 1px solid grey;}
+#legend-table td{padding: 4px 5px; }

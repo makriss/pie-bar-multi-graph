@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+        <link href="pie-bar-multi-graph.css" rel="stylesheet">
+    </head>
+    <body>
+        <div id="graph-chart"> </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+        <script src="pie-bar-multi-graph.js"></script>
+        <script>
+                var football = [
+            		{id:1, name: '2011-12', value: 204,
+            			 categories:[
+            				 {
+            					name: 'La Liga',
+            					categories:
+            					 [
+            						 { name: 'Lionel Messi', value: 50},
+            						 { name: 'Christiano Ronaldo', value: 46},
+            						 { name: 'Karim Benzema', value: 21}
+            					 ],
+            				 },
+            				 {
+            					name: 'Champions League',
+            					categories:
+            					 [
+            						 { name: 'Lionel Messi', value: 14},
+            						 { name: 'Christiano Ronaldo', value: 12},
+            						 { name: 'Sergio Aguero', value: 1}
+            					 ]
+            				},
+            				 {
+            					name: 'English Premier League',
+            					categories:
+            					 [
+            						 { name: 'Sergio Aguero', value: 23},
+            						 { name: 'Suarez', value: 10},
+            						 { name: 'Wayne Rooney', value: 27}
+            					 ]
+            				 }
+            			 ]
+            		},
+            		{id:2, name: '2012-13', value: 173,
+            			 categories:[
+            				 {
+            					name: 'La Liga',
+            					categories:
+            					 [
+            						 { name: 'Lionel Messi', value: 46},
+            						 { name: 'Christiano Ronaldo', value: 34},
+            						 { name: 'Karim Benzema', value: 11}
+            					 ],
+            				 },
+            				 {
+            					name: 'Champions League',
+            					categories:
+            					 [
+            						 { name: 'Lionel Messi', value: 8},
+            						 { name: 'Christiano Ronaldo', value: 12},
+            						 { name: 'Sergio Aguero', value: 2}
+            					 ]
+            				},
+            				 {
+            					name: 'English Premier League',
+            					categories:
+                                    [
+                                        { name: 'Sergio Aguero', value: 12},
+                                        { name: 'Suarez', value: 23},
+                                        { name: 'Wayne Rooney', value: 12}
+                                    ]
+            				 }
+            			 ]
+            		},
+            		{id:3, name: '2013-14', value: 170,
+            			 categories:[
+            				 {
+            					name: 'La Liga',
+            					categories:
+            					 [
+            						 { name: 'Lionel Messi', value: 28},
+            						 { name: 'Christiano Ronaldo', value: 31},
+            						 { name: 'Karim Benzema', value: 17}
+            					 ],
+            				 },
+            				 {
+            					name: 'Champions League',
+            					categories:
+            					 [
+            						 { name: 'Lionel Messi', value: 8},
+            						 { name: 'Christiano Ronaldo', value: 17},
+            						 { name: 'Sergio Aguero', value: 6}
+            					 ]
+            				},
+            				 {
+            					name: 'English Premier League',
+            					categories:
+                                    [
+                                       { name: 'Sergio Aguero', value: 17},
+                                       { name: 'Suarez', value: 31},
+                                       { name: 'Wayne Rooney', value: 17}
+                                   ]
+            				 }
+            			 ]
+            		}
+            	];
+
+                var config = {
+                		width: 800,
+                		height: 350,
+                		valueProp: 'value',
+                		labelProp: 'name',
+                		subProp: 'categories',
+                		id: '#graph-chart',
+                		ratio: 0.7
+                		// textOffsetHeight: 50
+                	}
+
+                graph = new multiGraphChart(config, football);
+
+        </script>
+    </body>
+
+</html>
