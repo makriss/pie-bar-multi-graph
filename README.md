@@ -17,7 +17,9 @@ Creates multiple grouped bar graphs and a pie chart
 			id: '#graph-chart',			//Id of the container element
 			ratio: 0.7, 				//(Optional) Ratio of bar graph width to total 'width' (default: 0.5)
 			marginV: 30,				//(Optional) Vertical margin inside the containing element (default: 30)
-			textOffsetHeight: 10		// (Optional) Height between bottom of bar graph and bar graph group label (default: 30)
+			textOffsetHeight: 10,		// (Optional) Height between bottom of bar graph and bar graph group label (default: 30)
+            uniqueIdentifier: 'id',      //(Optional) Property name which has unique value throught the object. If not given, Property given under 'labelProp' will be used
+            barPadding: 20              
 		}
     ```
 

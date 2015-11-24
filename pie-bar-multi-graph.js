@@ -1,6 +1,7 @@
 multiGraphChart = function(config, obj){
 	var duration = 500;
 	var self = this;
+	var uniqueId = config.uniqueIdentifier || config.labelProp;
 	var marginV = config.marginV?config.marginV:30;
 	var marginH = config.marginH?config.marginH:0;
 	var ratio = config.ratio?config.ratio:0.5;
@@ -12,6 +13,12 @@ multiGraphChart = function(config, obj){
 	var pieWidth = totalWidth - barGraphWidth;	// width assigned to pie chart svg element
 	var barColor = 'steelblue';
 	var groupScaleProp = 'id';
+	var barWidth = 0;
+	var totalBars = 0;
+	self.keys = {};
+	self.groupBarCountMap = {};
+	var p = config.barPadding || 10,	//padding between bars
+		wg = config.groupPadding || 30;	//padding between groups
 	// creates a linear scale to scale down(up) bar's height in accordance to container's height
 	var y = d3.scale.linear()
 			.range([totalHeight-textOffset,0]);
@@ -58,8 +65,9 @@ multiGraphChart = function(config, obj){
 							.append('g')
 							.attr('transform', "translate("+pieWidth/2+","+(totalHeight/2)+")");
 
-		self.totalObj = calculateGraphTotal(obj);
+		self.totalObj = calculateGraphTotal(obj); //adds up all inner most object values and creates a single 3 level object
 
+		barWidth = calculateBarWidth();	//calculates width of each bar
 		//creating a table container for legend
 		self.legendGroup = container.append('div')
 									.attr('id','legend-table')
@@ -70,14 +78,13 @@ multiGraphChart = function(config, obj){
 	//Runs first time and creates an object having the total of
 	// values under config.subLabel
 	function calculateGraphTotal(data){
-		self.keys = {};
 		var temp = {};
 		var total = 0;
 		for(var i in data){
 			if(data.hasOwnProperty(i)){
 				var sub = data[i][config.subProp];
 				sub.forEach(function(s){ //Inside second level
-					var parentName = s[config.labelProp];
+					var parentName = s[uniqueId];
 					if(!temp[parentName]) temp[parentName] = {}; // Creating parent property as in original structure
 					s[config.subProp].forEach(function(item,index){ //Inside third level
 						self.keys[index] = true;
@@ -98,9 +105,11 @@ multiGraphChart = function(config, obj){
 		}
 		self.keys = Object.keys(self.keys);
 
+		self.groupBarCountMap = createMap(temp);
+
 		for(var sub in temp){
 			if(temp.hasOwnProperty(sub)){
-				var parent = {};
+				var parent = {};	//creates an object with labelProp and subProp (an array)
 				parent[config.labelProp] = sub;
 				var a = [];
 				// if(!self.keys) self.keys = Object.keys(temp[sub]);
@@ -116,8 +125,55 @@ multiGraphChart = function(config, obj){
 			}
 			arr.push(parent);
 		}
-//		console.log(JSON.parse(JSON.stringify(arr)));
 		return arr;	//returns an array of object having all groups with numbers added up
+	}
+
+	/**
+	 * Returns an object which has a mapping between each group (uniqueId) and total number of inner objects it has (bars)
+	 * @param  {Object} data Object with key as group unique identifier and value an array of objects (bars)
+	 */
+	function createMap(data){
+		var map = {};
+		var count = 0;	//counts number of bars
+		for(var i in data){
+			if(data.hasOwnProperty(i)){
+				map[i] = Object.keys(data).length;
+				count+=map[i];
+			}
+		}
+		totalBars = count;
+		return map;
+	}
+
+	function calculateBarWidth(){
+		var g = Object.keys(self.groupBarCountMap).length;	//number of groups
+		return (barGraphWidth - p*(totalBars-1) - (g-1)*wg)/totalBars;
+	}
+
+	/*
+		Creates a custom linear scale for bar groups. Unlike d3's default linear scale which equally divides space between groups
+		irrespective of number of inner objects, this scale will divide space based on the number of inner objects (bars) a group contains
+	 */
+	function createGroupScale(){
+		var map = self.groupBarCountMap;
+		var x={},
+			width = {},
+			count = 0;
+		for(var i in map){
+			if(map.hasOwnProperty(i)){
+				width[i] = map[i] * (p + barWidth) - map[i];
+				count+=width[i];
+				x[i] = count;
+			}
+		}
+		return {
+			getWidth: function(id){
+				return width[id];
+			},
+			getX: function(id){
+				return x[id];
+			}
+		}
 	}
 
 	function createChart(data){
