@@ -76,11 +76,11 @@ multiGraphChart = function(config, obj){
 		for(var i in data){
 			if(data.hasOwnProperty(i)){
 				var sub = data[i][config.subProp];
-				sub.forEach(function(s,index){ //Inside second level
+				sub.forEach(function(s){ //Inside second level
 					var parentName = s[config.labelProp];
 					if(!temp[parentName]) temp[parentName] = {}; // Creating parent property as in original structure
-					s[config.subProp].forEach(function(item){ //Inside third level
-						if(!self.keys[item[config.labelProp]]) self.keys[index] = true;
+					s[config.subProp].forEach(function(item,index){ //Inside third level
+						self.keys[index] = true;
 						if(!temp[parentName][item[config.labelProp]]) temp[parentName][item[config.labelProp]] = 0;
 						temp[parentName][item[config.labelProp]]+=item[config.valueProp];
 					})
@@ -117,7 +117,7 @@ multiGraphChart = function(config, obj){
 			arr.push(parent);
 		}
 //		console.log(JSON.parse(JSON.stringify(arr)));
-		return arr;
+		return arr;	//returns an array of object having all groups with numbers added up
 	}
 
 	function createChart(data){
@@ -158,7 +158,10 @@ multiGraphChart = function(config, obj){
 		bar.selectAll("text")
 			.data(function(d){ return d[config.subProp]; })
 			.enter().append('text')
-			.attr('x', function(d,i){ return x2(i+1) + x2.rangeBand()/2; })
+			.attr('x', function(d,i){
+				var r = x2(i+1) + x2.rangeBand()/2;
+				return r;
+			})
 			.attr("y", function(d) { return y(d[config.valueProp]) - 3; })
 			.attr('text-anchor', 'middle')
 			.text(function(d) { return d[config.valueProp]; });
