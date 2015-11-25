@@ -11,14 +11,15 @@ multiGraphChart = function(config, obj){
 	var textOffset = config.textOffsetHeight || 30;
 	var barGraphWidth = ratio*totalWidth; //width assigned to bar graph svg element
 	var pieWidth = totalWidth - barGraphWidth;	// width assigned to pie chart svg element
+	var netBarGraphWidth = barGraphWidth-marginH;
 	var barColor = 'steelblue';
 	var groupScaleProp = 'id';
-	var barWidth = 0;
+	var unitWidth = 0;
 	var totalBars = 0;
 	self.keys = {};
 	self.groupBarCountMap = {};
-	var p = config.barPadding || 10,	//padding between bars
-		wg = config.groupPadding || 30;	//padding between groups
+	var p = config.barPadding || 0.1,	//padding between bars
+		gp = config.groupPadding || 30;	//padding between groups
 	// creates a linear scale to scale down(up) bar's height in accordance to container's height
 	var y = d3.scale.linear()
 			.range([totalHeight-textOffset,0]);
@@ -52,9 +53,11 @@ multiGraphChart = function(config, obj){
 						.attr('transform', "translate("+marginH+","+marginV+")");
 
 		self.barGroup = self.chart.append('g')
-							.attr('transform', "translate(0,0)");
+							.attr('transform', "translate(0,0)")
+							.attr('bhakk', 'bhakk')
+
 		self.bottomLabelGroup = self.chart.append('g')
-									.attr('transform', "translate(0,"+(totalHeight-textOffset)+")");
+									.attr('transform', "translate(0,"+(totalHeight-textOffset)+")")
 
 		//creating svg container for pie chart
 		self.pieGroup = container.append('svg')
@@ -67,7 +70,6 @@ multiGraphChart = function(config, obj){
 
 		self.totalObj = calculateGraphTotal(obj); //adds up all inner most object values and creates a single 3 level object
 
-		barWidth = calculateBarWidth();	//calculates width of each bar
 		//creating a table container for legend
 		self.legendGroup = container.append('div')
 									.attr('id','legend-table')
@@ -137,7 +139,7 @@ multiGraphChart = function(config, obj){
 		var count = 0;	//counts number of bars
 		for(var i in data){
 			if(data.hasOwnProperty(i)){
-				map[i] = Object.keys(data).length;
+				map[i] = Object.keys(data[i]).length;
 				count+=map[i];
 			}
 		}
@@ -145,25 +147,22 @@ multiGraphChart = function(config, obj){
 		return map;
 	}
 
-	function calculateBarWidth(){
-		var g = Object.keys(self.groupBarCountMap).length;	//number of groups
-		return (barGraphWidth - p*(totalBars-1) - (g-1)*wg)/totalBars;
-	}
-
 	/*
 		Creates a custom linear scale for bar groups. Unlike d3's default linear scale which equally divides space between groups
 		irrespective of number of inner objects, this scale will divide space based on the number of inner objects (bars) a group contains
 	 */
-	function createGroupScale(){
-		var map = self.groupBarCountMap;
+	function createGroupScale(map){
 		var x={},
 			width = {},
 			count = 0;
+		//assuming each bar to be a unit for a group and adding up all bar's for each group to get width of that group and finding that unit dimension
+		unitWidth = Math.round((netBarGraphWidth - (Object.keys(map).length-1)*gp)/totalBars);
+
 		for(var i in map){
 			if(map.hasOwnProperty(i)){
-				width[i] = map[i] * (p + barWidth) - map[i];
-				count+=width[i];
+				width[i] = map[i] * unitWidth;
 				x[i] = count;
+				count+=width[i]+gp;
 			}
 		}
 		return {
@@ -176,6 +175,57 @@ multiGraphChart = function(config, obj){
 		}
 	}
 
+	function createBarScale(gs, map, ratio){
+		var p = unitWidth*ratio;
+		var b = unitWidth - p;
+		var x = {};
+		for(var i in map){
+			if(map.hasOwnProperty(i)){
+				var n = map[i];
+				x[i] = {};
+				var gw = gs.getWidth(i);	//width of ith group
+				switch (n%2) {
+					case 0:	var middleNode = n/2;	//if even number of bars
+							var counter = gw/2 - (b + p/2);
+							//for nodes before middleNode
+							for(var c=middleNode-1; c>=0; c--){
+								x[i][c] = counter;
+								counter-= p+b;
+							}
+							//for nodes after middleNode
+							counter = gw/2 + p/2;
+							for(var c=middleNode; c<n; c++){
+								x[i][c] = counter;
+								counter+= p+b;
+							}
+							break;
+
+					case 1:	var middleNode = parseInt(n/2) + 1;	//if odd number of bars
+							var counter = gw/2 - b/2;
+							//for nodes before middleNode
+							for(var c=middleNode-1; c>=0; c--){
+								x[i][c] = counter;
+								counter-= p+b;
+							}
+							counter = gw/2 + b/2 + p;
+							for(var c=middleNode; c<n; c++){
+								x[i][c] = counter;
+								counter+= p+b;
+							}
+							break;
+				}
+			}
+		}
+		return {
+			getX: function(id, i){
+				return x[id][i];
+			},
+			getWidth: function(){
+				return b;
+			}
+		}
+	}
+
 	function createChart(data){
 		createBarGraph(self.totalObj);
 		createPieChart(data);
@@ -183,13 +233,16 @@ multiGraphChart = function(config, obj){
 	}
 
 	function createBarGraph(data){
+		var gs = createGroupScale(self.groupBarCountMap);
+		window.gs = gs;
+		var bs = createBarScale(gs, self.groupBarCountMap, p);
+		window.bs = bs;
 		x.domain(data.map(function(d) { return d[config.labelProp]; })); //Setting domain for overall x scale
 		// x2 scale's width is mapped to index of array+1
 		x2.domain(self.keys.map(function(d,i){ return i+1; })).rangeRoundBands([0,x.rangeBand()],.1);
 		y.domain([0, d3.max(data, function(d){
 			return d3.max(d[config.subProp], function(ds){ return ds[config.valueProp] });
 		})]);
-		window.y = y;
 		self.chart.select('g.x.axis').remove('*');
 		var bar = self.barGroup.selectAll('g')
 					.data(data);
@@ -197,17 +250,17 @@ multiGraphChart = function(config, obj){
 
 		bar.attr('class', 'bar')
 			.attr('transform', function(d,i){
-				return "translate("+x(d[config.labelProp])+",0)";
+				return "translate("+gs.getX(d[uniqueId])+",0)";
 			});
 
 		// create's bars based on data
 		bar.selectAll('rect')
 			.data(function(d){ return d[config.subProp]; })
 			.enter().append('rect')
-			.attr('x', function(d,i){ return x2(i+1); })
+			.attr('x', function(d,i){ var id = d3.select(this.parentNode).datum()[uniqueId]; return bs.getX(id, i); })
 			.attr('y', function(d){ return y(d[config.valueProp]); })
-			.attr('width', x2.rangeBand())
-			.attr('height', function(d){ return totalHeight - textOffset  -y(d[config.valueProp]); })
+			.attr('width', bs.getWidth())
+			.attr('height', function(d){ return totalHeight - textOffset - y(d[config.valueProp]); })
 			.attr('fill',barColor)
 
 		// creates text field above each bar
@@ -215,7 +268,8 @@ multiGraphChart = function(config, obj){
 			.data(function(d){ return d[config.subProp]; })
 			.enter().append('text')
 			.attr('x', function(d,i){
-				var r = x2(i+1) + x2.rangeBand()/2;
+				var id = d3.select(this.parentNode).datum()[uniqueId];
+				var r = bs.getX(id,i) + bs.getWidth()/2;
 				return r;
 			})
 			.attr("y", function(d) { return y(d[config.valueProp]) - 3; })
@@ -229,13 +283,13 @@ multiGraphChart = function(config, obj){
 						.data(data);
 		labels.enter().append('g')
 				.attr('transform', function(d,i){
-				return "translate("+x(d[config.labelProp])+",0)";
+				return "translate("+gs.getX(d[uniqueId])+",0)";
 			});
 
 		labels.selectAll('text')
 			.data(function(d){ return d[config.subProp]; })
 			.enter().append('text')
-			.attr('x', function(d,i){ return x2(i+1) + x2.rangeBand()/2; })
+			.attr('x', function(d,i){ var id = d3.select(this.parentNode).datum()[uniqueId]; console.log(id); return (bs.getX(id,i) + bs.getWidth()/2); })
 			.attr("y", function(d) { return 12; })
 			.attr('text-anchor', 'middle')
 			// .text(function(d){ return d[config.labelProp]; })
