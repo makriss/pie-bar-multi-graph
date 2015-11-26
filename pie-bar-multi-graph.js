@@ -20,27 +20,19 @@ multiGraphChart = function(config, obj){
 	self.groupBarCountMap = {};
 	var p = config.barPadding || 0.1,	//padding between bars
 		gp = config.groupPadding || 30;	//padding between groups
+
+	var gs = {},	//group scale
+		bs = {};	//bar scale
 	// creates a linear scale to scale down(up) bar's height in accordance to container's height
 	var y = d3.scale.linear()
 			.range([totalHeight-textOffset,0]);
 
-	//calculates overall bar graph width
-	var x = d3.scale.ordinal()
-    			.rangeRoundBands([0, barGraphWidth], .1);
-
-	// Scale to compute width inside a bar group
-	var x2 = d3.scale.ordinal();
-
-	// x axis of the bar graph
-	var xAxis = d3.svg.axis()
-					.scale(x)
-					.orient('bottom');
 	// pie layout
 	var pieLayout = d3.layout.pie()
 						.value(function(d){ return d[config.valueProp] });
 	// scale for color's of pie chart
 	var pieColor = d3.scale.ordinal()
-						.range(["#807dba","#e08214","#41ab5d",'#2ca02c', '#d62728']);
+						.range(["#807dba","#ff7f0e",'#2ca02c','#2196f3','#f8e71c','#7f7f7f','#91d948','#8f7540']);
 
 	function init(){
 		var container = d3.select(config.id);
@@ -54,10 +46,10 @@ multiGraphChart = function(config, obj){
 
 		self.barGroup = self.chart.append('g')
 							.attr('transform', "translate(0,0)")
-							.attr('bhakk', 'bhakk')
 
 		self.bottomLabelGroup = self.chart.append('g')
 									.attr('transform', "translate(0,"+(totalHeight-textOffset)+")")
+									.attr('class', 'bottom-label-group')
 
 		//creating svg container for pie chart
 		self.pieGroup = container.append('svg')
@@ -233,13 +225,8 @@ multiGraphChart = function(config, obj){
 	}
 
 	function createBarGraph(data){
-		var gs = createGroupScale(self.groupBarCountMap);
-		window.gs = gs;
-		var bs = createBarScale(gs, self.groupBarCountMap, p);
-		window.bs = bs;
-		x.domain(data.map(function(d) { return d[config.labelProp]; })); //Setting domain for overall x scale
-		// x2 scale's width is mapped to index of array+1
-		x2.domain(self.keys.map(function(d,i){ return i+1; })).rangeRoundBands([0,x.rangeBand()],.1);
+		gs = createGroupScale(self.groupBarCountMap);
+		bs = createBarScale(gs, self.groupBarCountMap, p);
 		y.domain([0, d3.max(data, function(d){
 			return d3.max(d[config.subProp], function(ds){ return ds[config.valueProp] });
 		})]);
@@ -280,39 +267,48 @@ multiGraphChart = function(config, obj){
 
 		//Adding bottom labels for individual bars
 		var labels = self.bottomLabelGroup.selectAll('g')
-						.data(data);
-		labels.enter().append('g')
-				.attr('transform', function(d,i){
-				return "translate("+gs.getX(d[uniqueId])+",0)";
-			});
+						.data(data)
+						.enter().append('g')
+						.attr('transform', function(d,i){
+							return "translate("+gs.getX(d[uniqueId])+",0)";
+						});
 
 		labels.selectAll('text')
 			.data(function(d){ return d[config.subProp]; })
 			.enter().append('text')
-			.attr('x', function(d,i){ var id = d3.select(this.parentNode).datum()[uniqueId]; console.log(id); return (bs.getX(id,i) + bs.getWidth()/2); })
+			.attr('x', function(d,i){ var id = d3.select(this.parentNode).datum()[uniqueId]; return (bs.getX(id,i) + bs.getWidth()/2); })
 			.attr("y", function(d) { return 12; })
 			.attr('text-anchor', 'middle')
 			// .text(function(d){ return d[config.labelProp]; })
 			.each(wrapText);
 
 		//Adding horizontal axis labelling each bar group
-		self.chart.append("g")
-			.attr("class", "x axis")
-			.attr("transform", "translate(0," + totalHeight + ")")
-			.call(xAxis)
-			.selectAll('#graph-chart .x.axis .tick text')
+		self.barGroups = self.chart.append('g')
+							.attr("transform", "translate(0," + totalHeight + ")")
+							.attr("class", "x axis")
+
+		self.barGroups.selectAll('g')
+			.data(data)
+			.enter().append('g')
+			.attr('transform', function(d,i){
+				var id = d[uniqueId];
+				var middle = gs.getX(id,i) + gs.getWidth(id)/2;
+				return "translate("+middle+",0)";
+			})
+			.append('text')
+			.text(function(d){ return d[config.labelProp]; })
+			.attr('text-anchor', 'middle')
 			.style({'font-size': '12px'})
 	}
 
 	function wrapText(d,index) {
-		index++;
-	   var arr = d.name.split(" ");
+	   var arr = d[config.labelProp].split(" ");
 	   if (arr != undefined) {
 		   for (i = 0; i < arr.length; i++) {
 			   d3.select(this).append("tspan")
 				   .text(arr[i])
 				   .attr("dy", i ? "1.2em" : 0)
-				   .attr('x', function(d){ return x2(index) + x2.rangeBand()/2; })						   .attr("text-anchor", "middle")
+				   .attr('x', function(d){ var id = d3.select(this.parentNode.parentNode).datum()[uniqueId]; return bs.getX(id,index) + bs.getWidth()/2; })						   .attr("text-anchor", "middle")
 				   .attr("class", "tspan" + i);
 		   }
 	   }
