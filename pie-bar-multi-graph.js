@@ -167,6 +167,9 @@ multiGraphChart = function(config, obj){
 		}
 	}
 
+	/*
+		Creates a linear scale for bars inside each group. Independent scale is created for each group. Width of bar remains the same throught.
+	 */
 	function createBarScale(gs, map, ratio){
 		var p = unitWidth*ratio;
 		var b = unitWidth - p;
