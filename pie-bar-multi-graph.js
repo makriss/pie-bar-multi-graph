@@ -27,20 +27,29 @@ multiGraphChart = function(config, obj){
 	var y = d3.scale.linear()
 			.range([totalHeight-textOffset,0]);
 
+	/*
+		This scale will linearly scale down all the values in pie chart between specified range
+		This will indirectly create a minimum angle for a path
+	 */
+	var pathScale = d3.scale.linear().range([7,360]);
+	this.scale = pathScale;
+
 	// pie layout
 	var pieLayout = d3.layout.pie()
-						.value(function(d){ return d[config.valueProp] });
+						.value(function(d){ return pathScale(d[config.valueProp]) });
 	// scale for color's of pie chart
 	var pieColor = d3.scale.ordinal()
 						.range(["#807dba","#ff7f0e",'#2ca02c','#2196f3','#f8e71c','#7f7f7f','#91d948','#8f7540']);
 
 	function init(){
-		var container = d3.select(config.id);
+		var container = d3.select(config.id)
+							.attr('id','graph-chart-multi');
+
 		//svg container for bar graph
 		self.chart = container.append('svg')
-						.attr('id','graph-chart-svg')
 						.attr('width', barGraphWidth)
 						.attr('height', config.height)
+						.attr('id','graph-chart-multi-bar-svg')
 						.append('g')
 						.attr('transform', "translate("+marginH+","+marginV+")");
 
@@ -342,6 +351,10 @@ multiGraphChart = function(config, obj){
 	}
 
 	function createPieChart(data){
+		// var minvalue=d3.min(data,function(d){return d[config.valueProp]});
+        var maxvalue=d3.max(data,function(d){return d[config.valueProp]})
+        pathScale.domain([0,maxvalue]);
+
 		var oRadius = Math.min(totalHeight, pieWidth)/2;
 		var arc = d3.svg.arc()
 					.innerRadius(0)
@@ -349,7 +362,7 @@ multiGraphChart = function(config, obj){
 		var piePath = self.pieGroup.selectAll('path')
 						.data(pieLayout(data), function(d){ return d.data.id; })
 		piePath.enter().append('path');
-		piePath.attr('fill', function(d){ return pieColor(d.data['id']);})
+		piePath.attr('fill', function(d){ return pieColor(d.data[uniqueId]);})
 				.attr('stroke', 'white')
 				.attr('stroke-width', 0.7)
 				.attr('d', arc)
@@ -364,12 +377,13 @@ multiGraphChart = function(config, obj){
 		var tr = tBody.selectAll('tr')
 					.data(data)
 					.enter()
-					.append('tr');
+					.append('tr')
+					.attr('unique-attr',function(d){ return d[uniqueId]; })
 
 		tr.append('td').append('svg').attr("width", '16').attr("height", '16')
 			.append("rect").attr("width", '16').attr("height", '16')
 			.attr('fill',function(d){
-				return pieColor(d['id']);
+				return pieColor(d[uniqueId]);
 			});
 		tr.append('td').html(function(d){return d[config.labelProp]});
 		// tr.append('td').html(function(d){return d[config.valueProp]});
@@ -380,10 +394,14 @@ multiGraphChart = function(config, obj){
 		var color = d3.select(this)
 			.attr('fill');
 		updateBarGraph(d.data[config.subProp], color);
+		d3.select("tr[unique-attr='"+d.data[uniqueId]+"']")
+			.classed('highlight-row',true);
 	}
 
 	function mouseLeave(d){
 		updateBarGraph(self.totalObj, barColor);
+		d3.select("tr[unique-attr='"+d.data[uniqueId]+"']")
+			.classed('highlight-row',false);
 	}
 
 	if(obj && obj.length){
